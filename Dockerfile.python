@@ -1,26 +1,27 @@
-# Этап 1: Сборщик (builder) — устанавливаем зависимости 
-FROM python:3.12-slim AS builder  
+# Stage 1: install requirements 
+FROM python:3.12-slim AS stage1
 
-WORKDIR /app  
+WORKDIR /app
 
-# Копируем только requirements.txt, чтобы использовать кэш слоев 
-COPY requirements.txt .  
+# copy requirements to use build cache
+COPY requirements.txt .
 
-# Устанавливаем зависимости в отдельную папку (виртуальное окружение) 
-RUN python -m venv /opt/venv 
-ENV PATH="/opt/venv/bin:$PATH" 
-RUN pip install --no-cache-dir -r requirements.txt  
+# workflow
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Этап 2: Финальный образ (runtime) 
-FROM python:3.12-slim  
+# stage 2: final image
+FROM python:3.12-slim
 
-WORKDIR /app  
+WORKDIR /app
 
-# Копируем готовое виртуальное окружение из этапа builder 
-COPY --from=builder /opt/venv /opt/venv 
-ENV PATH="/opt/venv/bin:$PATH"  
+# copy venv from stage1 
+COPY --from=stage1 /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Требование задания: обязательно используем COPY . . 
-COPY . .  
+# Use COPY . . for .dockerignore
+COPY . .
 
-# Требование задания: этот CMD CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
